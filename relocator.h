@@ -1,0 +1,6 @@
+#ifndef POSTLINKER_RELOCATION_H
+#define POSTLINKER_RELOCATION_H
+
+#include "parser.h"
+
+#endif //POSTLINKER_RELOCATION_H

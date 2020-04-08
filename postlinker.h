@@ -1,14 +1,14 @@
 #ifndef POSTLINKER_POSTLINKER_H
 #define POSTLINKER_POSTLINKER_H
 
-void incr_segments_off(Elf64_Phdr* phdr, Elf64_Ehdr* ehdr);
+#include "parser.h"
 
-void rearrange_vaddr(Elf64_Phdr* phdr, Elf64_Ehdr* ehdr);
+void incr_segments_off(Elf_Data* elf);
 
-off_t calc_alignment(off_t off, uint64_t alignment);
+void rearrange_vaddr(Elf_Data* elf);
 
-off_t next_available_offset(Elf64_Ehdr *ehdr, Elf64_Phdr* phdr);
+void add_new_segments(int out_fd, Elf_Data* rel_elf, Elf_Data** exec_elf);
 
-off_t next_available_vaddr(Elf64_Ehdr *ehdr, Elf64_Phdr* phdr);
+void incr_sections_off(Elf_Data* elf);
 
 #endif //POSTLINKER_POSTLINEKR_H
