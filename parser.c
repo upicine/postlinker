@@ -134,3 +134,24 @@ Elf64_Rela* read_rela_tab(int fd, const Elf64_Shdr* rela_sh) {
 
     return rela;
 }
+
+
+Elf64_Sym* read_sym_tab(int fd, const Elf64_Shdr* sym_shdr) {
+    Elf64_Sym* sym_tab = malloc(sym_shdr->sh_size);
+    if (!sym_tab && sym_shdr->sh_size != 0) {
+        perror("Error reading sym tab");
+        exit(1);
+    }
+
+    ssize_t ret = pread(fd, sym_tab, sym_shdr->sh_size, sym_shdr->sh_offset);
+    if (ret < 0) {
+        perror("Error reading rela tab");
+        exit(1);
+    }
+
+    return sym_tab;
+}
+
+char* read_str_tab(int fd, const Elf64_Shdr* shdr) {
+
+}

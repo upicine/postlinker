@@ -24,6 +24,10 @@ Elf64_Phdr* read_program_header(int fd, const Elf64_Ehdr* ehdr);
 
 char* read_shstr_tab(int fd, const Elf64_Shdr* shdr, const Elf64_Ehdr* ehdr);
 
+char* read_str_tab(int fd, const Elf64_Shdr* shdr);
+
 Elf64_Rela* read_rela_tab(int fd, const Elf64_Shdr* rela_sh);
+
+Elf64_Sym* read_sym_tab(int fd, const Elf64_Shdr* sym_shdr);
 
 #endif //POSTLINKER_PARSER_H_H

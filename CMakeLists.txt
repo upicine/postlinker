@@ -3,5 +3,5 @@ project(postlinker)
 
 set(CMAKE_C_STANDARD 11)
 
-set(SOURCE_FILES main.c utils.c utils.h postlinker.c postlinker.h parser.c parser.h)
+set(SOURCE_FILES main.c utils.c utils.h postlinker.c postlinker.h parser.c parser.h relocator.c relocator.h)
 add_executable(postlinker ${SOURCE_FILES})
