@@ -23,7 +23,7 @@ int main(int argc, char** argv) {
 
     incr_segments_off(exec_elf);
     rearrange_vaddr(exec_elf);
-    copy_file(exec_elf->fd, output_fd, 0x2a8);
+    copy_file(exec_elf->fd, output_fd, 0x0);
 
     add_new_segments(output_fd, rel_elf, &exec_elf);
     incr_sections_off(exec_elf);

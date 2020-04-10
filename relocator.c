@@ -145,7 +145,7 @@ void relocate(int fd, Elf_Data* rel_elf, Elf_Data* exec_elf) {
     free(rel_shstr);
     free(exec_shstr);
     free(rel_str);
-    free(rel_str);
+    free(exec_str);
 }
 
 
