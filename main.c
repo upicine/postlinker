@@ -28,7 +28,7 @@ int main(int argc, char** argv) {
     add_new_segments(output_fd, rel_elf, &exec_elf);
     incr_sections_off(exec_elf);
 
-
+    relocate(output_fd, rel_elf, exec_elf);
 
     write_eheader(output_fd, exec_elf);
     write_pheader(output_fd, exec_elf);

@@ -20,5 +20,6 @@ void write_eheader(int fd, const Elf_Data* elf);
 
 void write_sheader(int fd, const Elf_Data* elf);
 
+void write_addr(int fd, const void* addr, size_t addr_sz, off_t off);
 
 #endif //POSTLINKER_ELFUTILS_H

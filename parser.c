@@ -153,5 +153,17 @@ Elf64_Sym* read_sym_tab(int fd, const Elf64_Shdr* sym_shdr) {
 }
 
 char* read_str_tab(int fd, const Elf64_Shdr* shdr) {
+    char* str_tab = malloc(shdr->sh_size);
+    if (!str_tab) {
+        perror("Error reading shstr tab");
+        exit(1);
+    }
 
+    ssize_t ret = pread(fd, str_tab, shdr->sh_size, shdr->sh_offset);
+    if (ret < 0) {
+        perror("Error reading shstr tab");
+        exit(1);
+    }
+
+    return str_tab;
 }

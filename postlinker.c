@@ -53,7 +53,7 @@ static Elf64_Off next_avail_off(int fd) {
 
 
 static size_t merge_content(char** content, Elf_Data* elf, Elf64_Xword flag,
-                            Elf64_Addr vaddr) {
+                            Elf64_Addr vaddr, off_t base_off) {
     Elf64_Ehdr* ehdr = elf->ehdr;
     Elf64_Shdr* shdr = elf->shdr;
     size_t content_sz = 0;
@@ -78,6 +78,7 @@ static size_t merge_content(char** content, Elf_Data* elf, Elf64_Xword flag,
             }
 
             shdr[i].sh_addr = vaddr + off + addr_align;
+            shdr[i].sh_offset = base_off + off + addr_align;
             off += addr_align + shdr[i].sh_size;
         }
     }
@@ -95,7 +96,7 @@ uint16_t merge_sections(int out_fd, Elf_Data* exec_elf, Elf_Data* rel_elf,
     for (int i = 0; i < sect_flags_sz; i++) {
         Elf64_Addr vaddr = BASE_ADDR + off;
         size_t content_sz = merge_content(&content, rel_elf, sect_flags[i],
-                                          vaddr);
+                                          vaddr, off);
 
         if (content_sz == 0)
             continue;

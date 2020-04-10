@@ -18,7 +18,7 @@ int open_file(const char* filename) {
 
 
 int create_file(const char* filename) {
-    int f = open(filename, O_CREAT | O_WRONLY | O_TRUNC, S_IRWXU);
+    int f = open(filename, O_CREAT | O_RDWR | O_TRUNC, S_IRWXU);
     if (!f) {
         perror("Error creating file");
         exit(1);
@@ -80,4 +80,13 @@ void copy_file(int fd_from, int fd_to, off_t start) {
 
         off += PAGE_SIZE;
     } while (rret != 0);
+}
+
+
+void write_addr(int fd, const void* addr, size_t addr_sz, off_t off) {
+    ssize_t ret = pwrite(fd, addr, addr_sz, off);
+    if (ret < 0) {
+        perror("Error writing instr address");
+        exit(1);
+    }
 }
