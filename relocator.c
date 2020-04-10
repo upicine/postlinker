@@ -56,29 +56,21 @@ static Elf64_Sym* search_symbol(const char* sym_name, Elf64_Sym* sym_tab,
 
 static void relocate_addr(int fd, Elf64_Addr sym_addr, Elf64_Rela* rela,
                           Elf64_Shdr* reloc_shdr) {
-    printf("SYM ADDR: %x\n", sym_addr);
     Elf64_Addr instr_addr = reloc_shdr->sh_addr + rela->r_offset;
-    printf("INSTR ADDR: %x\n", instr_addr);
-    printf("SECTION OFFSET: %x\n", reloc_shdr->sh_offset);
     Elf64_Off instr_off = reloc_shdr->sh_offset + rela->r_offset + PAGE_SIZE;
-    printf("INSTR OFF: %x\n", instr_off);
     Elf64_Xword r_type = ELF64_R_TYPE(rela->r_info);
 
     if (r_type == R_X86_64_PC32 || r_type == R_X86_64_PLT32) {
         Elf64_Word new_addr = (Elf64_Word)(sym_addr + rela->r_addend
                                            - instr_addr);
         write_addr(fd, &new_addr, sizeof(Elf64_Word), instr_off);
-        printf("NEW ADDR: %x\n", new_addr);
     } else if (r_type == R_X86_64_32 || r_type == R_X86_64_32S) {
         Elf64_Word  new_addr = (Elf64_Word)(sym_addr + rela->r_addend);
         write_addr(fd, &new_addr, sizeof(Elf64_Word), instr_off);
-        printf("NEW ADDR: %x\n", new_addr);
     } else if (r_type == R_X86_64_64) {
         Elf64_Xword new_addr = sym_addr + rela->r_addend;
         write_addr(fd, &new_addr, sizeof(Elf64_Xword), instr_off);
-        printf("NEW ADDR: %x\n", new_addr);
     }
-    printf("-----------------------------------------------\n");
 }
 
 
@@ -109,8 +101,6 @@ void relocate(int fd, Elf_Data* rel_elf, Elf_Data* exec_elf) {
 
                 if (rel_sym_tab[symndx].st_shndx == SHN_UNDEF) {
                     char* sym_name = rel_str + rel_sym_tab[symndx].st_name;
-                    printf("-----------------------------------------------\n");
-                    printf("SYMNAME: %s\n", sym_name);
 
                     if (strcmp(ORIG_START_NAME, sym_name) == 0) {
                         sym_addr = exec_elf->ehdr->e_entry;
@@ -122,8 +112,6 @@ void relocate(int fd, Elf_Data* rel_elf, Elf_Data* exec_elf) {
                     }
                 } else {
                     char* sym_name = rel_str + rel_sym_tab[symndx].st_name;
-                    printf("-----------------------------------------------\n");
-                    printf("SYMNAME: %s\n", sym_name);
                     sym_shdr = rel_elf->shdr + rel_sym_tab[symndx].st_shndx;
                     sym_addr = sym_shdr->sh_addr + rel_sym_tab[symndx].st_value;
                 }
