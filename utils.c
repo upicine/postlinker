@@ -71,7 +71,7 @@ void copy_file(int fd_from, int fd_to, off_t start) {
         }
 
         if (rret != 0) {
-            wret = pwrite(fd_to, buffer, rret, off + PAGE_SIZE);
+            wret = pwrite(fd_to, buffer, (size_t)rret, off + PAGE_SIZE);
             if (wret < 0) {
                 perror("Error copy file");
                 exit(1);

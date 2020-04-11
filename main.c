@@ -1,13 +1,10 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include <elf.h>
 #include <unistd.h>
 
 #include "utils.h"
 #include "postlinker.h"
 #include "relocator.h"
-#include "parser.h"
-
 
 int main(int argc, char** argv) {
     if (argc != 4) {
@@ -20,6 +17,8 @@ int main(int argc, char** argv) {
 
     Elf_Data* exec_elf =  init_exec_elf(argv[1]);
     Elf_Data* rel_elf = init_rel_elf(argv[2]);
+
+    set_base_vaddr(exec_elf);
 
     incr_segments_off(exec_elf);
     rearrange_vaddr(exec_elf);
@@ -36,7 +35,11 @@ int main(int argc, char** argv) {
 
     free_elf(&exec_elf);
     free_elf(&rel_elf);
-    close(output_fd);
+    int ret = close(output_fd);
+    if (ret < 0) {
+        perror("Error closing output file");
+        exit(1);
+    }
 
     return 0;
 }

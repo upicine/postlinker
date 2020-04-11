@@ -1,7 +1,3 @@
-//
-// Created by michal on 05.04.20.
-//
-
 #include <elf.h>
 #include <stdlib.h>
 #include <zconf.h>
@@ -40,7 +36,12 @@ Elf_Data* init_rel_elf(const char* filename) {
 
 
 void free_elf(Elf_Data** elf) {
-    close((*elf)->fd);
+    int ret = close((*elf)->fd);
+    if (ret < 0) {
+        perror("Error closing elf file");
+        exit(1);
+
+    }
     free((*elf)->ehdr);
     free((*elf)->phdr);
     free((*elf)->shdr);
@@ -68,7 +69,7 @@ Elf64_Ehdr* read_elf_header(int fd) {
 Elf64_Shdr* read_sections_header(int fd, const Elf64_Ehdr *ehdr) {
     size_t sect_size = ehdr->e_shentsize * ehdr->e_shnum;
     Elf64_Shdr* sections = malloc(sect_size);
-    if (!sections) {
+    if (!sections && sect_size > 0) {
         perror("Error reading sections header");
         exit(1);
     }
@@ -86,7 +87,7 @@ Elf64_Shdr* read_sections_header(int fd, const Elf64_Ehdr *ehdr) {
 Elf64_Phdr* read_program_header(int fd, const Elf64_Ehdr* ehdr) {
     size_t phdr_size = ehdr->e_phentsize * ehdr->e_phnum;
     Elf64_Phdr* phdr = malloc(phdr_size);
-    if (!phdr) {
+    if (!phdr && phdr_size > 0) {
         perror("Error reading program header");
         exit(1);
     }
@@ -104,7 +105,7 @@ Elf64_Phdr* read_program_header(int fd, const Elf64_Ehdr* ehdr) {
 char* read_shstr_tab(int fd, const Elf64_Shdr* shdr, const Elf64_Ehdr* ehdr) {
     Elf64_Shdr shstr_hdr = shdr[ehdr->e_shstrndx];
     char* shstr_tab = malloc(shstr_hdr.sh_size);
-    if (!shstr_tab) {
+    if (!shstr_tab && shstr_hdr.sh_size > 0) {
         perror("Error reading shstr tab");
         exit(1);
     }
@@ -154,7 +155,7 @@ Elf64_Sym* read_sym_tab(int fd, const Elf64_Shdr* sym_shdr) {
 
 char* read_str_tab(int fd, const Elf64_Shdr* shdr) {
     char* str_tab = malloc(shdr->sh_size);
-    if (!str_tab) {
+    if (!str_tab && shdr->sh_size > 0) {
         perror("Error reading shstr tab");
         exit(1);
     }

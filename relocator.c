@@ -7,7 +7,7 @@
 #include "utils.h"
 
 
-static Elf64_Shdr* search_shdr(const char* shdr_name, Elf_Data* elf,
+static Elf64_Shdr* search_shdr(const char* shdr_name, const Elf_Data* elf,
                                char* shstr_tab) {
     Elf64_Shdr* shdr = elf->shdr;
 
@@ -19,19 +19,19 @@ static Elf64_Shdr* search_shdr(const char* shdr_name, Elf_Data* elf,
 }
 
 
-static size_t get_sym_tab(int fd, Elf64_Sym** sym_tab, Elf_Data *elf) {
+static size_t get_sym_tab(int fd, Elf64_Sym** sym_tab, const Elf_Data *elf) {
     Elf64_Shdr* shdr = elf->shdr;
 
     for (int i = 0; i < elf->ehdr->e_shnum; i++) {
         if (shdr[i].sh_type == SHT_SYMTAB) {
             *sym_tab = read_sym_tab(fd, shdr + i);
-            return shdr[i].sh_size;
+            return shdr[i].sh_size / sizeof(Elf64_Sym);
         }
     }
 }
 
 
-static char* get_str_tab(int fd, Elf_Data *elf, char* shstr_tab) {
+static char* get_str_tab(int fd, const Elf_Data *elf, char* shstr_tab) {
     Elf64_Shdr* shdr = elf->shdr;
 
     for (int i = 0; i < elf->ehdr->e_shnum; i++) {
@@ -51,6 +51,8 @@ static Elf64_Sym* search_symbol(const char* sym_name, Elf64_Sym* sym_tab,
         if (strcmp(act_sym_name, sym_name) == 0)
             return sym_tab + i;
     }
+
+    return NULL;
 }
 
 
@@ -107,11 +109,9 @@ void relocate(int fd, Elf_Data* rel_elf, Elf_Data* exec_elf) {
                     } else {
                         sym = search_symbol(sym_name, exec_sym_tab, exec_str,
                                             exec_sym_sz);
-//                        sym_shdr = exec_elf->shdr + sym->st_shndx;
                         sym_addr = sym->st_value;
                     }
                 } else {
-                    char* sym_name = rel_str + rel_sym_tab[symndx].st_name;
                     sym_shdr = rel_elf->shdr + rel_sym_tab[symndx].st_shndx;
                     sym_addr = sym_shdr->sh_addr + rel_sym_tab[symndx].st_value;
                 }
@@ -125,8 +125,10 @@ void relocate(int fd, Elf_Data* rel_elf, Elf_Data* exec_elf) {
 
     Elf64_Sym* start_sym = search_symbol(_START_NAME, rel_sym_tab, rel_str,
                                          rel_sym_sz);
-    Elf64_Shdr* start_hdr = rel_shdr + start_sym->st_shndx;
-    exec_elf->ehdr->e_entry = start_hdr->sh_addr + start_sym->st_value;
+    if (start_sym) {
+        Elf64_Shdr *start_hdr = rel_shdr + start_sym->st_shndx;
+        exec_elf->ehdr->e_entry = start_hdr->sh_addr + start_sym->st_value;
+    }
 
     free(exec_sym_tab);
     free(rel_sym_tab);

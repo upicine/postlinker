@@ -11,4 +11,6 @@ void add_new_segments(int out_fd, Elf_Data* rel_elf, Elf_Data** exec_elf);
 
 void incr_sections_off(Elf_Data* elf);
 
+void set_base_vaddr(const Elf_Data* elf);
+
 #endif //POSTLINKER_POSTLINEKR_H

@@ -3,35 +3,53 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+#include <stdint.h>
 
 #include "postlinker.h"
 #include "utils.h"
 
-static const Elf64_Xword sect_flags[] = {
-        SHF_ALLOC + SHF_EXECINSTR + SHF_WRITE,
-        SHF_ALLOC + SHF_EXECINSTR,
-        SHF_ALLOC + SHF_WRITE,
-        SHF_ALLOC
-};
 
-static const size_t sect_flags_sz = 4;
+typedef enum {RWX, RX, RW, R} Sect_Flag;
 
 
-static Elf64_Word shflag_to_phflag(Elf64_Xword shflag) {
-    switch (shflag) {
-        case SHF_ALLOC + SHF_EXECINSTR + SHF_WRITE:
-            return PF_R + PF_W + PF_X;
-        case SHF_ALLOC + SHF_EXECINSTR:
-            return PF_R + PF_X;
-        case SHF_ALLOC + SHF_WRITE:
-            return PF_R + PF_W;
-        case SHF_ALLOC:
+static const unsigned int sect_flag_num = 4;
+
+static Elf64_Addr base_vaddr;
+
+
+static Elf64_Word shflag_to_phflag(Sect_Flag flag) {
+    switch (flag) {
+        case RWX:
+            return PF_R | PF_W | PF_X;
+        case RX:
+            return PF_R | PF_X;
+        case RW:
+            return PF_R | PF_W;
+        case R:
             return PF_R;
     }
 }
 
 
-static off_t calc_alignment(off_t off, uint64_t alignment) {
+static int has_flag(Elf64_Xword sect_flag, Sect_Flag flag) {
+    if (sect_flag & SHF_ALLOC) {
+        if (flag == RWX && sect_flag & SHF_EXECINSTR && sect_flag & SHF_WRITE)
+            return 1;
+        if (flag == RW && sect_flag & SHF_WRITE
+            && !(sect_flag & SHF_EXECINSTR))
+            return 1;
+        if (flag == RX && sect_flag & SHF_EXECINSTR
+            && !(sect_flag & SHF_WRITE))
+            return 1;
+        if (flag == R && !(sect_flag & SHF_EXECINSTR)
+            && !(sect_flag & SHF_WRITE))
+            return 1;
+    }
+    return 0;
+}
+
+
+static Elf64_Off calc_alignment(Elf64_Off off, uint64_t alignment) {
     if (off % alignment != 0)
         return alignment - (off % alignment);
 
@@ -48,19 +66,29 @@ static Elf64_Off next_avail_off(int fd) {
         exit(1);
     }
 
-    return (Elf64_Off) file_sz + calc_alignment(file_sz, PAGE_SIZE);
+    return (Elf64_Off) file_sz + calc_alignment((Elf64_Off)file_sz, PAGE_SIZE);
 }
 
 
-static size_t merge_content(char** content, Elf_Data* elf, Elf64_Xword flag,
+void set_base_vaddr(const Elf_Data* elf) {
+    base_vaddr = UINT64_MAX;
+    for (int i = 0; i < elf->ehdr->e_phnum; i++) {
+        if (elf->phdr[i].p_vaddr != 0x0 && elf->phdr[i].p_vaddr < base_vaddr) {
+            base_vaddr = elf->phdr[i].p_vaddr;
+        }
+    }
+}
+
+
+static size_t merge_content(char** content, Elf_Data* elf, Sect_Flag flag,
                             Elf64_Addr vaddr, off_t base_off) {
     Elf64_Ehdr* ehdr = elf->ehdr;
     Elf64_Shdr* shdr = elf->shdr;
     size_t content_sz = 0;
-    off_t off = 0, addr_align = 0;
+    Elf64_Off off = 0, addr_align = 0;
 
     for (int i = 0; i < ehdr->e_shnum; i++) {
-        if (shdr[i].sh_size != 0 && shdr[i].sh_flags == flag) {
+        if (shdr[i].sh_size != 0 && has_flag(shdr[i].sh_flags, flag)) {
             addr_align = calc_alignment(off, shdr[i].sh_addralign);
 
             content_sz += addr_align + shdr[i].sh_size;
@@ -93,16 +121,15 @@ uint16_t merge_sections(int out_fd, Elf_Data* exec_elf, Elf_Data* rel_elf,
     uint16_t j = 0;
     Elf64_Off off = next_avail_off(exec_elf->fd);
 
-    for (int i = 0; i < sect_flags_sz; i++) {
-        Elf64_Addr vaddr = BASE_ADDR + off;
-        size_t content_sz = merge_content(&content, rel_elf, sect_flags[i],
-                                          vaddr, off);
+    for (Sect_Flag f = RWX; f <= R; f++) {
+        Elf64_Addr vaddr = base_vaddr + off;
+        size_t content_sz = merge_content(&content, rel_elf, f, vaddr, off);
 
         if (content_sz == 0)
             continue;
 
         new_phdr[j].p_type = PT_LOAD;
-        new_phdr[j].p_flags = shflag_to_phflag(sect_flags[i]);
+        new_phdr[j].p_flags = shflag_to_phflag(f);
         new_phdr[j].p_offset = off + PAGE_SIZE;
         new_phdr[j].p_memsz = content_sz;
         new_phdr[j].p_filesz = content_sz;
@@ -127,7 +154,7 @@ uint16_t merge_sections(int out_fd, Elf_Data* exec_elf, Elf_Data* rel_elf,
 
 
 void add_new_segments(int out_fd, Elf_Data* rel_elf, Elf_Data** exec_elf) {
-    Elf64_Phdr new_phdr[sect_flags_sz];
+    Elf64_Phdr new_phdr[sect_flag_num];
     Elf64_Ehdr* exec_ehdr = (*exec_elf)->ehdr;
     uint16_t new_seg_num = merge_sections(out_fd, *exec_elf, rel_elf, new_phdr);
     uint32_t new_phdr_sz = ((*exec_elf)->ehdr->e_phnum + new_seg_num)

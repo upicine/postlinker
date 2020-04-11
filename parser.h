@@ -1,8 +1,9 @@
 #ifndef POSTLINKER_PARSER_H_H
 #define POSTLINKER_PARSER_H_H
 
+#include <elf.h>
 
-typedef struct Elf_File {
+typedef struct Elf_Data {
     int fd;
     Elf64_Ehdr* ehdr;
     Elf64_Phdr* phdr;
